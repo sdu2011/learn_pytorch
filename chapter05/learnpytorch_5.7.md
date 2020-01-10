@@ -62,3 +62,90 @@ class VGG(nn.Module):
         output = self.fc(feature.view(img.shape[0], -1))
         return output
 ```
+卷积层的输出可由以下测试代码得出
+```
+# conv = make_layers(1,cfgs['A'])
+# X = torch.randn((1,1,224,224))
+# out = conv(X)
+# #print(out.shape)
+```
+
+## 加载数据
+```
+batch_size,num_workers=4,4
+train_iter,test_iter = learntorch_utils.load_data(batch_size,num_workers,resize=224)
+```
+这里batch_size调到8我的显存就不够了...
+
+## 定义模型
+```
+net = VGG(1,cfgs['A']).cuda()
+```
+
+## 定义损失函数
+```
+loss = nn.CrossEntropyLoss()
+```
+
+## 定义优化器　
+```
+opt = torch.optim.Adam(net.parameters(),lr=0.001)
+```
+
+## 定义评估函数
+```
+def test():
+    acc_sum = 0
+    batch = 0
+    for X,y in test_iter:
+        X,y = X.cuda(),y.cuda()
+        y_hat = net(X)
+        acc_sum += (y_hat.argmax(dim=1) == y).float().sum().item()
+        batch += 1
+    #print('acc_sum %d,batch %d' % (acc_sum,batch))
+
+    return 1.0*acc_sum/(batch*batch_size)
+```
+
+## 训练
+```
+num_epochs = 3
+def train():
+    for epoch in range(num_epochs):
+        train_l_sum,batch,acc_sum = 0,0,0
+        start = time.time()
+        for X,y in train_iter:
+            # start_batch_begin = time.time()
+            X,y = X.cuda(),y.cuda()
+            y_hat = net(X)
+            acc_sum += (y_hat.argmax(dim=1) == y).float().sum().item()
+
+            l = loss(y_hat,y)
+            opt.zero_grad()
+            l.backward()
+
+            opt.step()
+            train_l_sum += l.item()
+
+            batch += 1
+
+            mean_loss = train_l_sum/(batch*batch_size) #计算平均到每张图片的loss
+            start_batch_end = time.time()
+            time_batch = start_batch_end - start
+
+            print('epoch %d,batch %d,train_loss %.3f,time %.3f' % 
+                (epoch,batch,mean_loss,time_batch))
+
+        print('***************************************')
+        mean_loss = train_l_sum/(batch*batch_size) #计算平均到每张图片的loss
+        train_acc = acc_sum/(batch*batch_size)     #计算训练准确率
+        test_acc = test()                           #计算测试准确率
+        end = time.time()
+        time_per_epoch =  end - start
+        print('epoch %d,train_loss %f,train_acc %f,test_acc %f,time %f' % 
+                (epoch + 1,mean_loss,train_acc,test_acc,time_per_epoch))
+
+train()
+```
+4G的GTX 1050显卡,训练一个epoch大概一个多小时.
+完整代码:<https://github.com/sdu2011/learn_pytorch>
