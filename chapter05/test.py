@@ -8,7 +8,7 @@ class VGG(nn.Module):
 
 def make_layers(cfg, batch_norm=False):
     layers = []
-    in_channels = 3
+    in_channels = 1
     for v in cfg:
         if v == 'M':
             layers += [nn.MaxPool2d(kernel_size=2, stride=2)]
@@ -27,4 +27,8 @@ cfgs = {
     'D': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M'],
     'E': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 256, 'M', 512, 512, 512, 512, 'M', 512, 512, 512, 512, 'M'],
 }
-model = VGG(make_layers(cfgs['A']))
+model = make_layers(cfgs['A'])
+
+X = torch.randn((1,1,224,224))
+out = model(X)
+print(out.shape)

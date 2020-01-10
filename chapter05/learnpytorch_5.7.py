@@ -8,26 +8,21 @@ sys.path.append("..")
 import learntorch_utils
 import time
 
-class VGG(nn.Module):
-    def __init__(self, features, num_classes=1000, init_weights=True):
-        super(VGG, self).__init__()
-        print(features)
-        self.features = features
-
-def make_layers(cfg, batch_norm=False):
+def make_layers(in_channels,cfg):
     layers = []
-    in_channels = 3
+    previous_channel = in_channels #上一层的输出的channel数量
     for v in cfg:
         if v == 'M':
-            layers += [nn.MaxPool2d(kernel_size=2, stride=2)]
+            layers.append(nn.MaxPool2d(kernel_size=2,stride=2))
         else:
-            conv2d = nn.Conv2d(in_channels, v, kernel_size=3, padding=1)
-            if batch_norm:
-                layers += [conv2d, nn.BatchNorm2d(v), nn.ReLU(inplace=True)]
-            else:
-                layers += [conv2d, nn.ReLU(inplace=True)]
-            in_channels = v
-    return nn.Sequential(*layers)
+            layers.append(nn.Conv2d(previous_channel,v,kernel_size=3,padding=1))
+            layers.append(nn.ReLU())
+
+            previous_channel = v
+
+    conv = nn.Sequential(*layers)
+    return conv
+
 
 cfgs = {
     'A': [64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
@@ -35,17 +30,40 @@ cfgs = {
     'D': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M'],
     'E': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 256, 'M', 512, 512, 512, 512, 'M', 512, 512, 512, 512, 'M'],
 }
-model = VGG(make_layers(cfgs['A']))
+
+class VGG(nn.Module):
+    def __init__(self,input_channels,cfg,num_classes=10, init_weights=True):
+        super(VGG, self).__init__()
+        self.conv = make_layers(input_channels,cfg) # torch.Size([1, 512, 7, 7])
+        self.fc = nn.Sequential(
+            nn.Linear(512*7*7,4096),
+            nn.ReLU(),
+            nn.Linear(4096,4096),
+            nn.ReLU(),
+            nn.Linear(4096,num_classes)
+        )
+    
+    def forward(self, img):
+        feature = self.conv(img)
+        output = self.fc(feature.view(img.shape[0], -1))
+        return output
 
 
+# conv = make_layers(1,cfgs['A'])
+# X = torch.randn((1,1,224,224))
+# out = conv(X)
+# #print(out.shape)
 
+# net = VGG(1,cfgs['A'])
+# out = net(X)
+# print(out.shape)
 
 # 加载数据
-batch_size,num_workers=128,4
+batch_size,num_workers=4,4
 train_iter,test_iter = learntorch_utils.load_data(batch_size,num_workers,resize=224)
 
 # 定义模型
-net = VggNet().cuda()
+net = VGG(1,cfgs['A']).cuda()
 
 # 定义损失函数
 loss = nn.CrossEntropyLoss()
@@ -73,6 +91,7 @@ def train():
         train_l_sum,batch,acc_sum = 0,0,0
         start = time.time()
         for X,y in train_iter:
+            # start_batch_begin = time.time()
             X,y = X.cuda(),y.cuda()
             y_hat = net(X)
             acc_sum += (y_hat.argmax(dim=1) == y).float().sum().item()
@@ -86,6 +105,14 @@ def train():
 
             batch += 1
 
+            mean_loss = train_l_sum/(batch*batch_size) #计算平均到每张图片的loss
+            start_batch_end = time.time()
+            time_batch = start_batch_end - start
+
+            print('epoch %d,batch %d,train_loss %.3f,time %.3f' % 
+                (epoch,batch,mean_loss,time_batch))
+
+        print('***************************************')
         mean_loss = train_l_sum/(batch*batch_size) #计算平均到每张图片的loss
         train_acc = acc_sum/(batch*batch_size)     #计算训练准确率
         test_acc = test()                           #计算测试准确率
