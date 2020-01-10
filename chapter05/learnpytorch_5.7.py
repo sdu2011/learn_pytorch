@@ -31,23 +31,43 @@ cfgs = {
     'E': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 256, 'M', 512, 512, 512, 512, 'M', 512, 512, 512, 512, 'M'],
 }
 
+# class VGG(nn.Module):
+#     def __init__(self,input_channels,cfg,num_classes=10, init_weights=True):
+#         super(VGG, self).__init__()
+#         self.conv = make_layers(input_channels,cfg) # torch.Size([1, 512, 7, 7])
+#         self.fc = nn.Sequential(
+#             nn.Linear(512*7*7,4096),
+#             nn.ReLU(inplace=True), #inplace作用:节省显存　https://www.cnblogs.com/wanghui-garcia/p/10642665.html
+#             nn.Dropout(p=0.5),
+#             nn.Linear(4096,4096),
+#             nn.ReLU(inplace=True),
+#             nn.Dropout(p=0.5),
+#             nn.Linear(4096,num_classes)
+#         )
+    
+#     def forward(self, img):
+#         feature = self.conv(img)
+#         output = self.fc(feature.view(img.shape[0], -1))
+#         return output
+
 class VGG(nn.Module):
     def __init__(self,input_channels,cfg,num_classes=10, init_weights=True):
         super(VGG, self).__init__()
         self.conv = make_layers(input_channels,cfg) # torch.Size([1, 512, 7, 7])
         self.fc = nn.Sequential(
-            nn.Linear(512*7*7,4096),
-            nn.ReLU(),
-            nn.Linear(4096,4096),
-            nn.ReLU(),
-            nn.Linear(4096,num_classes)
+            nn.Linear(512*7*7,512),
+            nn.ReLU(inplace=True), #inplace作用:节省显存　https://www.cnblogs.com/wanghui-garcia/p/10642665.html
+            nn.Dropout(p=0.5),
+            nn.Linear(512,512),
+            nn.ReLU(inplace=True),
+            nn.Dropout(p=0.5),
+            nn.Linear(512,num_classes)
         )
     
     def forward(self, img):
         feature = self.conv(img)
         output = self.fc(feature.view(img.shape[0], -1))
         return output
-
 
 # conv = make_layers(1,cfgs['A'])
 # X = torch.randn((1,1,224,224))
@@ -59,11 +79,12 @@ class VGG(nn.Module):
 # print(out.shape)
 
 # 加载数据
-batch_size,num_workers=4,4
+batch_size,num_workers=24,4
 train_iter,test_iter = learntorch_utils.load_data(batch_size,num_workers,resize=224)
 
 # 定义模型
 net = VGG(1,cfgs['A']).cuda()
+print(net)
 
 # 定义损失函数
 loss = nn.CrossEntropyLoss()
@@ -73,6 +94,7 @@ opt = torch.optim.Adam(net.parameters(),lr=0.001)
 
 # 定义评估函数
 def test():
+    start = time.time()
     acc_sum = 0
     batch = 0
     for X,y in test_iter:
@@ -81,8 +103,12 @@ def test():
         acc_sum += (y_hat.argmax(dim=1) == y).float().sum().item()
         batch += 1
     #print('acc_sum %d,batch %d' % (acc_sum,batch))
+    
+    acc = 1.0*acc_sum/(batch*batch_size)
+    end = time.time()
+    print('acc %3f,test for test dataset:time %d' % (acc,end - start))
 
-    return 1.0*acc_sum/(batch*batch_size)
+    return acc
 
 # 训练
 num_epochs = 3
@@ -109,8 +135,12 @@ def train():
             start_batch_end = time.time()
             time_batch = start_batch_end - start
 
-            print('epoch %d,batch %d,train_loss %.3f,time %.3f' % 
-                (epoch,batch,mean_loss,time_batch))
+            train_acc = acc_sum/(batch*batch_size) 
+            if batch % 100 == 0:
+                print('epoch %d,batch %d,train_loss %.3f,train_acc:%.3f,time %.3f' % 
+                    (epoch,batch,mean_loss,train_acc,time_batch))
+
+
 
         print('***************************************')
         mean_loss = train_l_sum/(batch*batch_size) #计算平均到每张图片的loss

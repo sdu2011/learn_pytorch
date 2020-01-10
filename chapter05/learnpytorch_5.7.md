@@ -149,3 +149,28 @@ train()
 ```
 4G的GTX 1050显卡,训练一个epoch大概一个多小时.
 完整代码:<https://github.com/sdu2011/learn_pytorch>
+
+--- 
+batch=4,收敛极慢,迭代次数不够的话,欠拟合严重.在训练集上的train accuracy也很低.
+由于全连接层的存在,参数极多,造成训练慢,显存占用多,导致batch_size调不大.模型修改为
+```
+class VGG(nn.Module):
+    def __init__(self,input_channels,cfg,num_classes=10, init_weights=True):
+        super(VGG, self).__init__()
+        self.conv = make_layers(input_channels,cfg) # torch.Size([1, 512, 7, 7])
+        self.fc = nn.Sequential(
+            nn.Linear(512*7*7,512),
+            nn.ReLU(inplace=True), #inplace作用:节省显存　https://www.cnblogs.com/wanghui-garcia/p/10642665.html
+            nn.Dropout(p=0.5),
+            nn.Linear(512,512),
+            nn.ReLU(inplace=True),
+            nn.Dropout(p=0.5),
+            nn.Linear(512,num_classes)
+        )
+    
+    def forward(self, img):
+        feature = self.conv(img)
+        output = self.fc(feature.view(img.shape[0], -1))
+        return output
+```
+全连接层调整为512个神经元.
