@@ -79,12 +79,15 @@ class VGG(nn.Module):
 # print(out.shape)
 
 # 加载数据
-batch_size,num_workers=24,4
+batch_size,num_workers=16,4
 train_iter,test_iter = learntorch_utils.load_data(batch_size,num_workers,resize=224)
 
 # 定义模型
 net = VGG(1,cfgs['A']).cuda()
 print(net)
+
+#　恢复模型参数
+net.load_state_dict(torch.load('./vgg_epoch_0_batch_2000_acc_0.81.pt'))
 
 # 定义损失函数
 loss = nn.CrossEntropyLoss()
@@ -140,7 +143,10 @@ def train():
                 print('epoch %d,batch %d,train_loss %.3f,train_acc:%.3f,time %.3f' % 
                     (epoch,batch,mean_loss,train_acc,time_batch))
 
-
+            if batch % 1000 == 0:
+                model_state = net.state_dict()
+                model_name = 'vgg_epoch_%d_batch_%d_acc_%.2f.pt' % (epoch,batch,train_acc)
+                torch.save(model_state,model_name)
 
         print('***************************************')
         mean_loss = train_l_sum/(batch*batch_size) #计算平均到每张图片的loss
