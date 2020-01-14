@@ -173,4 +173,7 @@ class VGG(nn.Module):
         output = self.fc(feature.view(img.shape[0], -1))
         return output
 ```
-全连接层调整为512个神经元.
+全连接层调整为512个神经元.batch_size调到16．训练快多了.
+```
+```
+```
