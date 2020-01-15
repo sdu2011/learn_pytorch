@@ -102,8 +102,8 @@ class GoogLeNet(nn.Module):
         self.inception_5a = Inception(832,256,(160,320),(32,128),128)
         self.inception_5b = Inception(832,384,(192,384),(48,128),128)
         
-        self.avg_pool = nn.AvgPool2d(kernel_size=7)
-        self.dropout = nn.Dropout(p=0.4,inplace=True)
+        self.avg_pool = nn.AvgPool2d(kernel_size=2) #注意全局平均池化的kernel_size要和你前面的输出的shape匹配起来
+        self.dropout = nn.Dropout(p=0.2,inplace=True)
 
         self.fc = nn.Linear(1024,10,bias=True)
 
@@ -143,8 +143,8 @@ class GoogLeNet(nn.Module):
 # print(out.shape)
 
 # 加载数据
-batch_size,num_workers=32,4
-train_iter,test_iter = learntorch_utils.load_data(batch_size,num_workers,resize=224)
+batch_size,num_workers=16,4
+train_iter,test_iter = learntorch_utils.load_data(batch_size,num_workers,resize=64)
 
 # 定义模型
 net = GoogLeNet().cuda()
@@ -210,9 +210,9 @@ def train():
                 print('epoch %d,batch %d,test_acc:%.3f' % 
                     (epoch,batch,test_acc))
 
-            if save_to_disk and batch % 3000 == 0:
+            if save_to_disk and batch % 1000 == 0:
                 model_state = net.state_dict()
-                model_name = 'nin_epoch_%d_batch_%d_acc_%.2f.pt' % (epoch,batch,train_acc)
+                model_name = 'googlenet_epoch_%d_batch_%d_acc_%.2f.pt' % (epoch,batch,train_acc)
                 torch.save(model_state,model_name)
 
         print('***************************************')
