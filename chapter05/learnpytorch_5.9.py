@@ -176,7 +176,7 @@ def test():
 
 # 训练
 num_epochs = 3
-save_to_disk = False
+save_to_disk = True
 def train():
     for epoch in range(num_epochs):
         train_l_sum,batch,acc_sum = 0,0,0
@@ -210,7 +210,7 @@ def train():
                 print('epoch %d,batch %d,test_acc:%.3f' % 
                     (epoch,batch,test_acc))
 
-            if save_to_disk and batch % 1000 == 0:
+            if save_to_disk and batch % 3000 == 0:
                 model_state = net.state_dict()
                 model_name = 'nin_epoch_%d_batch_%d_acc_%.2f.pt' % (epoch,batch,train_acc)
                 torch.save(model_state,model_name)
