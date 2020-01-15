@@ -312,7 +312,6 @@ train()
 ```
 实验发现googlenet收敛比较慢.可能和全连接层用全局平均池化取代有关.因为用全局平均池化的话,相当于在全局平均池化之前,提取到的特征就是有高级语义的了,每一个feature map就代表了一个类别,所以前面负责特征提取的卷积部分就需要提取出更高级的特征.所以收敛会变慢.
 
-
-
+[完整代码](https://github.com/sdu2011/learn_pytorch/blob/master/chapter05/learnpytorch_5.9.py)
 
 
