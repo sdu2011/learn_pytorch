@@ -31,4 +31,37 @@ model = make_layers(cfgs['A'])
 
 X = torch.randn((1,1,224,224))
 out = model(X)
-print(out.shape)
+#print(out.shape)
+
+
+# X = torch.randn((16,1,224,224))
+# conv1 = nn.Conv2d(1, 6, 5)
+# o1 = conv1(X)
+# print(o1.shape)
+# bn1 = nn.BatchNorm2d(6)
+# print(bn1.bias.shape,bn1.weight.shape)
+# o2 = bn1(o1)
+# print(o2.shape)
+
+def f(a,b):
+    b=0.1*b +3
+    return a 
+
+b=1
+f(2,b)
+print(b)
+
+# gamma = torch.ones((1,10,1,1))
+# X_hat = torch.ones((256,10,5,5))
+# Y = gamma * X_hat #[1,10,1,1]*[256,10,5,5]
+# print(Y.shape)
+# Y2 = 10 * X_hat
+# print(Y2.shape)
+# print(Y==Y2)
+
+a=torch.Tensor([[1,2],[3,4]])
+b=torch.Tensor([[1,2]])
+Y=a*b
+print(Y)
+Y2 = 2*a
+print(Y2)
