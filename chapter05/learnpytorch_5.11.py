@@ -102,7 +102,7 @@ class ResNet(nn.Module):
 
 ## 数据加载
 batch_size,num_workers=32,2
-train_iter,test_iter = learntorch_utils.load_data(batch_size,num_workers,resize=128)
+train_iter,test_iter = learntorch_utils.load_data(batch_size,num_workers,resize=96)
 print('load data done,batch_size:%d' % batch_size)
 
 ## 模型定义
