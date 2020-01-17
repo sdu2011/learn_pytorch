@@ -39,7 +39,7 @@ class Residual(nn.Module):
         return out
 
 class ResNet(nn.Module):
-    def __init__(self,in_channels):
+    def __init__(self,in_channels,num_classes):
         super(ResNet,self).__init__()
         self.conv1 = nn.Sequential(
             nn.Conv2d(in_channels,64,kernel_size=7,stride=2,padding=3),
@@ -78,7 +78,7 @@ class ResNet(nn.Module):
         )
 
         self.avg_pool = nn.AvgPool2d(kernel_size=7)
-        
+        self.fc = nn.Linear(512,num_classes)
 
     def forward(self,x):
         out = self.conv1(x)
@@ -90,9 +90,11 @@ class ResNet(nn.Module):
         out = self.avg_pool(out)
         out = out.view((x.shape[0],-1))
 
+        out = self.fc(out)
+
         return out
 
-net = ResNet(1)
+net = ResNet(1,10)
 X=torch.randn((1,1,224,224))
 out = net(X)
 print(out.shape)
