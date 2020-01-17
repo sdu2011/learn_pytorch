@@ -256,5 +256,19 @@ class LeNet(nn.Module):
 net = LeNet().cuda()
 ```
 
+训练输出如下:
+```
+epoch 1,batch_size 4,train_loss 0.194394,time 50.538379
+acc:0.789400
+epoch 2,batch_size 4,train_loss 0.146268,time 52.352518
+acc:0.789500
+epoch 3,batch_size 4,train_loss 0.132021,time 52.240710
+acc:0.820600
+epoch 4,batch_size 4,train_loss 0.126241,time 53.277958
+acc:0.824400
+epoch 5,batch_size 4,train_loss 0.120607,time 52.067259
+acc:0.831800
+
+```
 
 
