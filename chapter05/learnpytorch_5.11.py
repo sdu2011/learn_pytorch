@@ -10,22 +10,23 @@ models.resnet
 
 class Residual(nn.Module):
     def __init__(self,in_channels,out_channels):
-        super(Residual,self).__init__
-        self.conv1 = nn.Conv2d(in_channels,out_channels,kernel_size=3,stride=2)
+        super(Residual,self).__init__()
+        self.conv1 = nn.Conv2d(in_channels,out_channels,kernel_size=3,stride=1,padding=1)
         self.bn1 = nn.BatchNorm2d(out_channels)
         self.relu = nn.ReLU(inplace=True)
-        self.conv2 = nn.Conv2d(out_channels,out_channels,kernel_size=3)
+        self.conv2 = nn.Conv2d(out_channels,out_channels,kernel_size=3,padding=1)
         self.bn2 = nn.BatchNorm2d(out_channels)
 
-
     def forward(self,x):
+        print(x.shape)
         o1 = self.relu(self.bn1(self.conv1(x)))
+        print(o1.shape)
         o2 = self.bn2(self.conv2(o1))
+        print(o2.shape)
 
         out = self.relu(o2 + x)
         
         return out
-
 
 class ResNet(nn.Module):
     def __init__(self,in_channels):
@@ -36,14 +37,23 @@ class ResNet(nn.Module):
             nn.ReLU(inplace=True)
         )
 
+        self.conv2 = nn.Sequential(
+            nn.MaxPool2d(kernel_size=3,stride=2,padding=1),
+            Residual(64,64),
+            Residual(64,64),
+            Residual(64,64),
+        )
+
     def forward(self,x):
         out = self.conv1(x)
+        out = self.conv2(out)
         return out
 
 net = ResNet(1)
 X=torch.randn((1,1,224,224))
 out = net(X)
 print(out.shape)
+
 
 
 # ## 数据加载
