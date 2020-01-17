@@ -62,10 +62,20 @@ class ResNet(nn.Module):
             Residual(128,128),
         )
 
+        self.conv4 = nn.Sequential(
+            Residual(128,256,stride=2),
+            Residual(256,256),
+            Residual(256,256),
+            Residual(256,256),
+            Residual(256,256),
+            Residual(256,256),
+        )
+
     def forward(self,x):
         out = self.conv1(x)
         out = self.conv2(out)
         out = self.conv3(out)
+        out = self.conv4(out)
 
         return out
 
