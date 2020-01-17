@@ -77,12 +77,18 @@ class ResNet(nn.Module):
             Residual(512,512),
         )
 
+        self.avg_pool = nn.AvgPool2d(kernel_size=7)
+        
+
     def forward(self,x):
         out = self.conv1(x)
         out = self.conv2(out)
         out = self.conv3(out)
         out = self.conv4(out)
         out = self.conv5(out)
+        
+        out = self.avg_pool(out)
+        out = out.view((x.shape[0],-1))
 
         return out
 
