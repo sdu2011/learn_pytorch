@@ -31,6 +31,10 @@ class DenseLayer(nn.Module):
         #     print(f.shape)
 
         input = torch.cat(prev_features,dim=1)
+        # print(input.device,input.shape)
+        # for param in self.bn1.parameters():
+        #     print(param.device)
+        # print(list())
         bottleneck_output = self.conv1x1(self.relu1(self.bn1(input)))
         out = self.conv3x3(self.relu2(self.bn2(bottleneck_output)))
         
@@ -45,7 +49,7 @@ class DenseBlock(nn.Module):
         for i in range(layer_counts):
             curr_input_channel = in_channels + i*growth_rate
             bottleneck_size = 4*growth_rate #论文里设置的1x1卷积核是3x3卷积核的４倍.
-            layer = DenseLayer(curr_input_channel,bottleneck_size,growth_rate)        
+            layer = DenseLayer(curr_input_channel,bottleneck_size,growth_rate).cuda()       
             self.layers.append(layer)
 
     def forward(self,init_features):
@@ -101,25 +105,90 @@ class DenseNet(nn.Module):
         out = self.pool1(x)
         for layer in self.dense_block_layers:
             out = layer(out) 
-            print(out.shape)
+            # print(out.shape)
         out = self.avg_pool(out)
         out = torch.flatten(out,start_dim=1) #相当于out = out.view((x.shape[0],-1))
         out = self.fc(out)
 
         return out
 
-X=torch.randn(1,3,224,224)
+X=torch.randn(1,3,48,48).cuda()
 block_config = [6,12,24,16]
 net = DenseNet(3,10,block_config)
+net = net.cuda()
+for param in list(net.parameters()):
+    print(param.device)
+# print(list(net.parameters()))
+
 # for name,module in net.named_children():
 #     print(name)
 out = net(X)
 print(out.shape)
 
-# print(out.shape)
+## 数据加载
+batch_size,num_workers=32,2
+train_iter,test_iter = learntorch_utils.load_data(batch_size,num_workers,resize=48)
+print('load data done,batch_size:%d' % batch_size)
 
-# X=torch.randn(1,10,28,28)
-# layer = DenseLayer(10,4,32)
-# o=layer(X)
-# print(o.shape)
+## 模型定义
+block_config = [6,12,24,16]
+net = DenseNet(1,10,block_config).cuda()
+
+## 损失函数定义
+l = nn.CrossEntropyLoss()
+
+## 优化器定义
+opt = torch.optim.Adam(net.parameters(),lr=0.01)
+
+## 评估函数定义
+num_epochs=5
+def test():
+    acc_sum = 0
+    batch = 0
+    for X,y in test_iter:
+        X,y = X.cuda(),y.cuda()
+        y_hat = net(X)
+        acc_sum += (y_hat.argmax(dim=1) == y).float().sum().item()
+        batch += 1
+    
+    test_acc = acc_sum/(batch*batch_size)
+
+    # print('test acc:%f' % test_acc)
+    return test_acc
+
+## 训练
+def train():
+    for epoch in range(num_epochs):
+        train_l_sum,batch,train_acc_sum=0,1,0
+        start = time.time()
+        for X,y in train_iter:
+            X,y = X.cuda(),y.cuda() #把tensor放到显存
+            y_hat = net(X)  #前向传播
+            loss = l(y_hat,y) #计算loss,nn.CrossEntropyLoss中会有softmax的操作
+            opt.zero_grad()#梯度清空
+            loss.backward()#反向传播,求出梯度
+            opt.step()#根据梯度,更新参数
+
+            #　数据统计
+            train_l_sum += loss.item()
+            train_acc_sum += (y_hat.argmax(dim=1) == y).float().sum().item()
+            train_loss = train_l_sum/(batch*batch_size)
+            train_acc = train_acc_sum/(batch*batch_size)
+            
+            if batch % 100 == 0: #每100个batch输出一次训练数据
+                print('epoch %d,batch %d,train_loss %.3f,train_acc:%.3f' % (epoch,batch,train_loss,train_acc))
+
+            if batch % 300 == 0: #每300个batch测试一次
+                test_acc = test()
+                print('epoch %d,batch %d,test_acc:%.3f' % (epoch,batch,test_acc))
+
+            batch += 1
+
+        end = time.time()
+        time_per_epoch =  end - start
+        print('epoch %d,batch_size %d,train_loss %f,time %f' % 
+                (epoch + 1,batch_size ,train_l_sum/(batch*batch_size),time_per_epoch))
+        test()
+
+train()
 
