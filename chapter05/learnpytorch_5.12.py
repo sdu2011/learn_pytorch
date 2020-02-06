@@ -90,6 +90,10 @@ class DenseNet(nn.Module):
                 self.dense_block_layers.add_module('transition%d' % (i+1),transition)
 
             block_in_channels = block_out_channels // 2 #更新下一个dense block的in_channels
+        
+        self.avg_pool = nn.AdaptiveAvgPool2d(output_size=(1,1))
+
+        self.fc = nn.Linear(block_in_channels,num_classes)
 
 
     def forward(self,x):
@@ -98,12 +102,17 @@ class DenseNet(nn.Module):
         for layer in self.dense_block_layers:
             out = layer(out) 
             print(out.shape)
-        # out = self.block1(out)
+        out = self.avg_pool(out)
+        out = torch.flatten(out,start_dim=1) #相当于out = out.view((x.shape[0],-1))
+        out = self.fc(out)
+
         return out
 
 X=torch.randn(1,3,224,224)
 block_config = [6,12,24,16]
 net = DenseNet(3,10,block_config)
+# for name,module in net.named_children():
+#     print(name)
 out = net(X)
 print(out.shape)
 
